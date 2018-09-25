@@ -15,15 +15,16 @@
         tools:context=".MapsActivity" />
 
     <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab_01"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:clickable="true"
         android:layout_margin="16dp"
-        android:id="@+id/fab_01"
+        android:clickable="true"
+        android:focusable="true"
         android:src="@drawable/ic_settings_white_24dp"
+        app:backgroundTint="#f44242"
         app:elevation="4dp"
-        app:layout_anchorGravity="bottom|right"
-        android:focusable="true" />
+        app:layout_anchorGravity="bottom|right" />
 
 </FrameLayout>
