@@ -2,21 +2,23 @@ package com.example.janis.maps;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -27,25 +29,24 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.tasks.Task;
 
-import java.sql.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
-    private static final int COLOR_BLACK_ARGB = 0xdd000000;
-    final int REQUEST_CHECK_SETTINGS = 1;
-    final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 2;
+public class MapsActivity extends Utils implements OnMapReadyCallback {
+    private static final int COLOR_BLACK_ARGB = 0xff222222;
+    private static final int REQUEST_CHECK_SETTINGS = 1;
 
     private List<List<LatLng>> tiles = new ArrayList<>();
     private LocationRequest mLocationRequest;
@@ -57,13 +58,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private PolygonOptions plo;
     private Polygon polygon1 = null;
     private double maxLat = 85.1054596961173;
+    private enum Colors {
+        GREEN ("#ffa5b076"),
+        BLUE ("#ffb9d3c2");
+
+        private final String colorHex;
+
+        Colors(String s) {
+            this.colorHex = s;
+        }
+
+        public String colorHex () {
+            return colorHex;
+        }
+    }
 
     private ArrayList<Location> locationArray = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
 
         setContentView(R.layout.activity_maps);
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -74,12 +88,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
-        }
 
         createLocationRequest();
 
@@ -93,9 +101,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     // Update UI with location data
                     // ...
                     boolean minDistance = true;
-                    int counter = 0;
                     for (Location loc : locationArray) {
-                        logs.log("locationArray", loc.getLongitude(), loc.getLatitude() + counter++ + '\n');
                         if (!isMinDistance(loc, location)) {
                             minDistance = false;
                         }
@@ -103,6 +109,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (minDistance) {
                         locationArray.add(location);
                         update();
+                        mMap.animateCamera(CameraUpdateFactory.zoomTo(17));
                     }
                 }
             }
@@ -170,6 +177,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         polygon1 = mMap.addPolygon(plo);
         polygon1.setTag("Overlay");
+        polygon1.setClickable(true);
         polygon1.setStrokeColor(Color.TRANSPARENT);
     }
 
@@ -187,34 +195,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onResume() {
         super.onResume();
+
+        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            logs.log("ay", "yes");
+            startActivity(new Intent(this, SplashActivity.class));
+            finish();
+        }
         // put your code here...
         createLocationRequest();
         startLocationUpdates();
     }
-
-    @SuppressLint("MissingPermission")
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[], @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay! Do the
-                    // location-related task you need to do.
-                    mMap.setMyLocationEnabled(true);
-                } else {
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                }
-            }
-
-            // other 'case' lines to check for other
-            // permissions this app might request.
-        }
-    }
-
 
     @SuppressLint("MissingPermission")
     protected void createLocationRequest() {
@@ -317,11 +307,53 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
      */
+    @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        try {
+            // Customise the styling of the base map using a JSON object defined
+            // in a raw resource file.
+            boolean success = googleMap.setMapStyle(
+                    MapStyleOptions.loadRawResourceStyle(
+                            this, R.raw.style_json));
+
+            if (!success) {
+                Log.e("style", "Style parsing failed.");
+            }
+        } catch (Resources.NotFoundException e) {
+            Log.e("style", "Can't find style. Error: ", e);
+        }
         mMap = googleMap;
+        mMap.setOnMapClickListener(latLng -> {
+            mMap.moveCamera(CameraUpdateFactory.zoomTo(20));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            mMap.setMyLocationEnabled(false);
+            sleep(120);
+            mMap.snapshot(bitmap -> {
+                mMap.setMyLocationEnabled(true);
+                mMap.moveCamera(CameraUpdateFactory.zoomTo(17));
+                handleClick(bitmap, latLng.latitude, latLng.longitude);
+            });
+        });
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         }
     }
+
+    private void handleClick(Bitmap bitmap, double latitude, double longitude) {
+        logs.log("BITMAP", bitmap.getWidth(), bitmap.getHeight(), latitude, longitude);
+        int size = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        Bitmap newBitmap = Bitmap.createBitmap(bitmap, 0, (height-size)/2, size, size);
+        View view = new View(this);
+        ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(720, 720);
+        view.setLayoutParams(layoutParams);
+        view.setBackgroundColor(getDominantColor(newBitmap));
+        logs.log("color", Integer.toHexString(getDominantColor(newBitmap)));
+        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog.setView(view);
+        alertDialog.show();
+    }
+
+
 }

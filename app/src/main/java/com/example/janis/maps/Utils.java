@@ -1,38 +1,51 @@
 package com.example.janis.maps;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.provider.Settings;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.support.annotation.ColorInt;
+import android.support.v4.app.FragmentActivity;
 
-public class Utils {
+public class Utils extends FragmentActivity {
 
-    //LocationServiceAPIHandled
-    public static void displayPromptForEnablingGPS(
-            final Activity activity)
-    {
-        final AlertDialog.Builder builder =
-                new AlertDialog.Builder(activity);
-        final String action = Settings.ACTION_LOCATION_SOURCE_SETTINGS;
-        final String message = "Enable either GPS or any other location"
-                + " service to find current location.  Click OK to go to"
-                + " location services settings to let you do so.";
 
-        builder.setMessage(message)
-                .setPositiveButton("OK",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface d, int id) {
-                                activity.startActivity(new Intent(action));
-                                d.dismiss();
-                            }
-                        })
-                .setNegativeButton("Cancel",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface d, int id) {
-                                d.cancel();
-                            }
-                        });
-        builder.create().show();
+    protected int getStatusBarHeight() {
+        int result = 0;
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
+    protected void sleep(long time) {
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected int getDominantColor(Bitmap bitmap) {
+        Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, 1, 1, true);
+        final int color = newBitmap.getPixel(0, 0);
+        newBitmap.recycle();
+        return color;
+    }
+
+    protected boolean colorBetween(@ColorInt int color, @ColorInt int color2, int r, int g, int b) {
+        int red = Color.red(color);
+        int green = Color.green(color);
+        int blue = Color.blue(color);
+
+        int red2 = Color.red(color2);
+        int green2 = Color.green(color2);
+        int blue2 = Color.blue(color2);
+
+        return between(red, red2 + r, red2 - r) && between(green, green2 + g, green2 - g) && between(blue, blue2 + b, blue2 - b);
+    }
+
+
+    protected boolean between(int i, int maxValueInclusive, int minValueInclusive) {
+        return i >= minValueInclusive && i <= maxValueInclusive;
     }
 }
